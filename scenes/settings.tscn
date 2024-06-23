@@ -1,0 +1,118 @@
+[gd_scene load_steps=4 format=3 uid="uid://be30ovs3rfyk4"]
+
+[ext_resource type="Texture2D" uid="uid://chceko8lvh2o8" path="res://Assets/background/Settingsbg.jpg" id="1_t2g5n"]
+
+[sub_resource type="GDScript" id="GDScript_wpue8"]
+script/source = "extends Node2D
+
+@onready var optionButton: OptionButton = $Music/OptionButton
+@onready var masterVol: RichTextLabel = $Music/MasterVol
+@onready var volumeSlider: HSlider = $Music/HSlider
+
+var realVolume: int
+
+var data: Dictionary = SaveGame.data
+
+func add_item():
+	optionButton.add_item(\"Normal\")
+	optionButton.add_item(\"Take on me\")
+	optionButton.add_item(\"Wilson homeland\")
+	
+func remap_value(value: float, from_min: float, from_max: float, to_min: float, to_max: float) -> float:
+	return (value - from_min) / (from_max - from_min) * (to_max - to_min) + to_min
+	
+func _ready() -> void:
+	add_item()
+	if \"volume\" in data:
+		var vol: String = str(data[\"volume\"])
+		volumeSlider.value = int(vol)
+		masterVol.text = \"Master volume: %s\" % str(remap_value(int(vol), -80, 20, 0, 100))
+	if \"musicChosen\" in data:
+		var music: String = str(data[\"musicChosen\"])
+		optionButton.select(int(music))
+
+func _on_option_button_item_selected(index: int) -> void:
+	MusicPlayer.setMusic(index)
+	SaveGame.data[\"musicChosen\"] = index
+
+func _on_touch_screen_button_pressed() -> void:
+	queue_free()
+
+func _on_h_slider_value_changed(value: float) -> void:
+	masterVol.text = \"Master volume: %s\" % str(remap_value(value, -80, 20, 0, 100))
+	if value > 0:
+		value /= 4
+	AudioServer.set_bus_volume_db(AudioServer.get_bus_index(\"Master\"), value)
+	realVolume = value
+
+func _on_h_slider_drag_ended(value_changed: bool) -> void:
+	SaveGame.data[\"volume\"] = realVolume
+"
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hrftr"]
+
+[node name="Settings" type="Node2D"]
+script = SubResource("GDScript_wpue8")
+
+[node name="Background" type="Sprite2D" parent="."]
+scale = Vector2(1.5173, 1.5173)
+texture = ExtResource("1_t2g5n")
+centered = false
+
+[node name="Music" type="Node2D" parent="."]
+position = Vector2(1, 202)
+
+[node name="Select" type="RichTextLabel" parent="Music"]
+offset_left = 1.0
+offset_top = 2.0
+offset_right = 365.0
+offset_bottom = 71.0
+theme_override_font_sizes/normal_font_size = 39
+text = "Music selector:"
+
+[node name="MasterVol" type="RichTextLabel" parent="Music"]
+offset_left = 1.0
+offset_top = 170.0
+offset_right = 365.0
+offset_bottom = 239.0
+theme_override_font_sizes/normal_font_size = 39
+text = "Master volume: 100"
+
+[node name="OptionButton" type="OptionButton" parent="Music"]
+offset_left = 2.0
+offset_top = 42.0
+offset_right = 276.0
+offset_bottom = 119.0
+theme_override_font_sizes/font_size = 20
+
+[node name="HSlider" type="HSlider" parent="Music"]
+offset_left = -1.0
+offset_top = 221.0
+offset_right = 257.0
+offset_bottom = 238.0
+scale = Vector2(1.32, 1.32)
+min_value = -80.0
+max_value = 20.0
+value = 20.0
+rounded = true
+
+[node name="Return" type="Node2D" parent="."]
+scale = Vector2(2.76, 2.76)
+
+[node name="RichTextLabel" type="RichTextLabel" parent="Return"]
+offset_left = 1.0
+offset_top = 2.0
+offset_right = 154.0
+offset_bottom = 51.0
+theme_override_font_sizes/normal_font_size = 39
+text = "Return"
+
+[node name="TouchScreenButton" type="TouchScreenButton" parent="Return"]
+position = Vector2(60, 20)
+scale = Vector2(5.68, 1.49002)
+shape = SubResource("RectangleShape2D_hrftr")
+
+[connection signal="item_selected" from="Music/OptionButton" to="." method="_on_option_button_item_selected"]
+[connection signal="drag_ended" from="Music/HSlider" to="." method="_on_h_slider_drag_ended"]
+[connection signal="value_changed" from="Music/HSlider" to="." method="_on_h_slider_value_changed"]
+[connection signal="pressed" from="Return/TouchScreenButton" to="." method="_on_touch_screen_button_pressed"]

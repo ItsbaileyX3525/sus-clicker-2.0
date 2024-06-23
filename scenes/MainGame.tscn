@@ -1,0 +1,171 @@
+[gd_scene load_steps=9 format=3 uid="uid://cw722klijuedw"]
+
+[ext_resource type="Texture2D" uid="uid://cugr2jifednrs" path="res://Assets/background/background.png" id="1_0nvv6"]
+[ext_resource type="Texture2D" uid="uid://sld886aaw4gb" path="res://Assets/clicker/clicker.png" id="2_i3wki"]
+[ext_resource type="Texture2D" uid="uid://dxsjmsw0urnho" path="res://Assets/clicker/pres logo.png" id="3_xtf8u"]
+[ext_resource type="Texture2D" uid="uid://cem5vmr0p3ojo" path="res://Assets/shops/tesco.jpg" id="4_5k6fv"]
+[ext_resource type="Texture2D" uid="uid://dfyfeit6jv6lq" path="res://Assets/clicker/setting.png" id="5_a3sw2"]
+[ext_resource type="Texture2D" uid="uid://cxbieatjwdx01" path="res://Assets/clicker/Leaderboard.png" id="6_rxwqq"]
+[ext_resource type="Texture2D" uid="uid://bnvy6xdv36qxl" path="res://Assets/clicker/Krabs.png" id="7_vtkno"]
+
+[sub_resource type="GDScript" id="GDScript_l3s54"]
+script/source = "extends Node2D
+
+var clicks: int = 0
+var multiplier: float = 1
+var multiplierCost: int = 25000
+var fixedTimeStep: float = 1.0/60.0
+
+@onready var scenes = {
+	\"Settings\" : preload(\"res://scenes/settings.tscn\"),
+	\"Leaderboard\" : preload(\"res://scenes/leader_board.tscn\")
+}
+
+@onready var clicksText: RichTextLabel = $Background/Clicks
+@onready var mutliplierText: RichTextLabel = $Background/Mutliplier
+@onready var presCostText: RichTextLabel = $clicker/Prices/PresCost
+
+var data: Dictionary = SaveGame.data
+	
+func _ready():
+	clicks = int(data[\"clicks\"])
+	multiplier = int(data[\"multiplier\"])
+	clicksText.text = \"Clicks: %s\" % clicks
+	mutliplierText.text = \"Multiplier: %sx\" % multiplier
+	presCostText.text = \"Prestige cost: %s\" % str(multiplierCost)
+	
+	if \"volume\" in data:
+		var vol: String = str(data[\"volume\"])
+		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(\"Master\"), int(vol)) 
+	if \"musicChosen\" in data:
+		var music: String = str(data[\"musicChosen\"])
+		MusicPlayer.setMusic(int(music))
+
+func _process(delta):
+	data[\"clicks\"] = clicks
+	data[\"multiplier\"] = multiplier
+	data[\"multiplierCost\"] = multiplierCost
+
+func _on_touch_screen_button_pressed() -> void:
+	clicks += 1 * multiplier
+	clicksText.text = \"Clicks: %s\" % clicks
+
+
+func _on_settings_pressed() -> void:
+	var settingsMenu: Node2D = scenes[\"Settings\"].instantiate()
+	add_child(settingsMenu)
+
+func _on_prestige_pressed() -> void:
+	data[\"clicks\"] = 0
+	data[\"multiplier\"] += .5
+	data[\"multiplierCost\"] *= 1.25
+
+
+func _on_leaderboard_pressed() -> void:
+	var leaderboardNode: Node2D = scenes[\"Leaderboard\"].instantiate()
+	add_child(leaderboardNode)
+"
+
+[node name="MainGame" type="Node2D"]
+script = SubResource("GDScript_l3s54")
+
+[node name="Background" type="Node2D" parent="."]
+
+[node name="Background1" type="TextureRect" parent="Background"]
+offset_right = 1922.0
+offset_bottom = 1081.0
+texture = ExtResource("1_0nvv6")
+
+[node name="Clicks" type="RichTextLabel" parent="Background"]
+offset_left = 3.0
+offset_top = 1002.0
+offset_right = 1924.0
+offset_bottom = 1076.0
+theme_override_font_sizes/normal_font_size = 40
+text = "Clicks: "
+deselect_on_focus_loss_enabled = false
+drag_and_drop_selection_enabled = false
+
+[node name="Mutliplier" type="RichTextLabel" parent="Background"]
+offset_top = 563.0
+offset_right = 360.0
+offset_bottom = 637.0
+theme_override_font_sizes/normal_font_size = 40
+text = "Multiplier: 1x"
+deselect_on_focus_loss_enabled = false
+drag_and_drop_selection_enabled = false
+
+[node name="clicker" type="Node2D" parent="."]
+
+[node name="Clickables" type="Node2D" parent="clicker"]
+
+[node name="Earn" type="TouchScreenButton" parent="clicker/Clickables"]
+position = Vector2(204, 630)
+scale = Vector2(0.264591, 0.255837)
+texture_normal = ExtResource("2_i3wki")
+
+[node name="Prestige" type="TouchScreenButton" parent="clicker/Clickables"]
+position = Vector2(13, 106)
+scale = Vector2(0.904591, 0.87466)
+texture_normal = ExtResource("3_xtf8u")
+
+[node name="Shop" type="TouchScreenButton" parent="clicker/Clickables"]
+position = Vector2(1478, 417)
+scale = Vector2(0.184591, 0.178483)
+texture_normal = ExtResource("4_5k6fv")
+
+[node name="Settings" type="TouchScreenButton" parent="clicker/Clickables"]
+position = Vector2(1757, 30)
+scale = Vector2(0.304591, 0.294513)
+texture_normal = ExtResource("5_a3sw2")
+
+[node name="Leaderboard" type="TouchScreenButton" parent="clicker/Clickables"]
+position = Vector2(333, 11)
+scale = Vector2(0.264589, 0.255834)
+texture_normal = ExtResource("6_rxwqq")
+
+[node name="Ads" type="TouchScreenButton" parent="clicker/Clickables"]
+position = Vector2(1660, 821)
+scale = Vector2(0.388717, 0.375855)
+texture_normal = ExtResource("7_vtkno")
+
+[node name="Prices" type="Node2D" parent="clicker"]
+
+[node name="PresCost" type="RichTextLabel" parent="clicker/Prices"]
+offset_top = 451.0
+offset_right = 261.0
+offset_bottom = 585.0
+scale = Vector2(1.39233, 1.3024)
+theme_override_font_sizes/normal_font_size = 40
+text = "Prestige cost: 999.99B"
+deselect_on_focus_loss_enabled = false
+drag_and_drop_selection_enabled = false
+
+[node name="EnterTesco" type="RichTextLabel" parent="clicker/Prices"]
+offset_left = 1476.0
+offset_top = 646.0
+offset_right = 1748.0
+offset_bottom = 690.0
+scale = Vector2(1.39233, 1.3024)
+theme_override_font_sizes/normal_font_size = 40
+bbcode_enabled = true
+text = "[center]Enter tesco[/center]"
+deselect_on_focus_loss_enabled = false
+drag_and_drop_selection_enabled = false
+
+[node name="EnterAds" type="RichTextLabel" parent="clicker/Prices"]
+offset_left = 1523.0
+offset_top = 1006.0
+offset_right = 1795.0
+offset_bottom = 1051.0
+scale = Vector2(1.39233, 1.3024)
+theme_override_font_sizes/normal_font_size = 40
+bbcode_enabled = true
+text = "[center]Enter ads shop[/center]"
+deselect_on_focus_loss_enabled = false
+drag_and_drop_selection_enabled = false
+
+[connection signal="pressed" from="clicker/Clickables/Earn" to="." method="_on_touch_screen_button_pressed"]
+[connection signal="pressed" from="clicker/Clickables/Prestige" to="." method="_on_prestige_pressed"]
+[connection signal="pressed" from="clicker/Clickables/Settings" to="." method="_on_settings_pressed"]
+[connection signal="pressed" from="clicker/Clickables/Leaderboard" to="." method="_on_leaderboard_pressed"]
