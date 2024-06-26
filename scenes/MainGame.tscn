@@ -11,59 +11,143 @@
 [sub_resource type="GDScript" id="GDScript_l3s54"]
 script/source = "extends Node2D
 
-var clicks: int = 0
-var multiplier: float = 1
-var multiplierCost: int = 25000
 var fixedTimeStep: float = 1.0/60.0
+const CPSLIMIT: int = 15
+var cps: int = 0
+var cpsTimer: float = 0
+var clickerOtherPos: Array[Vector2] = [
+	Vector2(1018,106),
+	Vector2(756,618),
+	Vector2(1284,746),
+	Vector2(664,830),
+	Vector2(204,630)
+]
 
-@onready var scenes = {
+@onready var scenes: Dictionary = {
 	\"Settings\" : preload(\"res://scenes/settings.tscn\"),
-	\"Leaderboard\" : preload(\"res://scenes/leader_board.tscn\")
+	\"Leaderboard\" : preload(\"res://scenes/leader_board.tscn\"),
+	\"Shop\" : preload(\"res://scenes/shop_entrence.tscn\"),
+	\"Ads\" : preload(\"res://scenes/ads.tscn\")
 }
 
 @onready var clicksText: RichTextLabel = $Background/Clicks
 @onready var mutliplierText: RichTextLabel = $Background/Mutliplier
 @onready var presCostText: RichTextLabel = $clicker/Prices/PresCost
+@onready var clickerEarn: TouchScreenButton = $clicker/Clickables/Earn
 
-var data: Dictionary = SaveGame.data
+var inSubScene: bool = false
+
+var shopNode: Node2D
+var leaderboardNode: Node2D
+var settingsNode: Node2D
+var adsNode: Node2D
+
+func removeScene(type: String) -> void:
+	var scenesToRemove: Dictionary = {
+		\"Settings\" : settingsNode,
+		\"Leaderboard\" : leaderboardNode,
+		\"Shop\" : shopNode,
+		\"Ads\" : adsNode
+	}
 	
+	if type == \"Ads\":
+		MusicPlayer.setMusic(int(SaveGame.data[\"musicChosen\"]))
+	
+	remove_child(scenesToRemove[type])
+	await get_tree().create_timer(.1).timeout
+	inSubScene = false
+
+func get_random_number(min_value: int, max_value: int) -> int:
+	randomize()
+	return randi_range(min_value, max_value)
+
+var suffixes = {
+	1: \"k\",
+	2: \"M\",
+	3: \"B\",
+	4: \"T\",
+	5: \"Qa\",
+	6: \"Qi\",
+	7: \"Sx\"
+}
+
+func format_number(number: int) -> String:
+	if number < 1000:
+		return str(number)
+	var exponent = int(floor(log(number) / log(10) / 3))
+	var base_value = number / pow(1000, exponent)
+	var formatted_value = round(base_value * 10) / 10.0
+	if exponent <= 0 or exponent > suffixes.size():
+		return str(formatted_value)
+	return str(formatted_value) + suffixes[exponent]
+
+
+func _process(delta: float) -> void:
+	clicksText.text = \"Clicks: %s\" % format_number(SaveGame.data[\"clicks\"])
+	cpsTimer += delta
+	if cpsTimer >= 1:
+		cpsTimer = 0
+		cps = 0
+
 func _ready():
-	clicks = int(data[\"clicks\"])
-	multiplier = int(data[\"multiplier\"])
-	clicksText.text = \"Clicks: %s\" % clicks
-	mutliplierText.text = \"Multiplier: %sx\" % multiplier
-	presCostText.text = \"Prestige cost: %s\" % str(multiplierCost)
+	var clicks = int(SaveGame.data[\"clicks\"])
+	var multiplier = int(SaveGame.data[\"multiplier\"])
+	var multiplierCost = float(SaveGame.data[\"multiplierCost\"])
+	clicksText.text = \"Clicks: %s\" % format_number(clicks)
+	mutliplierText.text = \"Multiplier: %sx\" % format_number(multiplier)
+	presCostText.text = \"Prestige cost: %s\" % format_number(multiplierCost)
 	
-	if \"volume\" in data:
-		var vol: String = str(data[\"volume\"])
+	if \"volume\" in SaveGame.data:
+		var vol: String = str(SaveGame.data[\"volume\"])
 		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(\"Master\"), int(vol)) 
-	if \"musicChosen\" in data:
-		var music: String = str(data[\"musicChosen\"])
+	if \"musicChosen\" in SaveGame.data:
+		var music: String = str(SaveGame.data[\"musicChosen\"])
 		MusicPlayer.setMusic(int(music))
 
-func _process(delta):
-	data[\"clicks\"] = clicks
-	data[\"multiplier\"] = multiplier
-	data[\"multiplierCost\"] = multiplierCost
+func showCPSWarning() -> void:
+	clickerEarn.position = clickerOtherPos[get_random_number(0,3)]
 
-func _on_touch_screen_button_pressed() -> void:
-	clicks += 1 * multiplier
-	clicksText.text = \"Clicks: %s\" % clicks
-
+func _on_earn_pressed() -> void:
+	if not inSubScene:
+		cps += 1
+		SaveGame.data[\"clicks\"] += 1 * SaveGame.data[\"multiplier\"]
+		
+		if cps >= 15:
+			showCPSWarning()
 
 func _on_settings_pressed() -> void:
-	var settingsMenu: Node2D = scenes[\"Settings\"].instantiate()
-	add_child(settingsMenu)
-
+	if not inSubScene:
+		settingsNode = scenes[\"Settings\"].instantiate()
+		add_child(settingsNode)
+		settingsNode.removeMe.connect(removeScene)
+		inSubScene = true
+	
 func _on_prestige_pressed() -> void:
-	data[\"clicks\"] = 0
-	data[\"multiplier\"] += .5
-	data[\"multiplierCost\"] *= 1.25
-
+	if SaveGame.data[\"clicks\"] >= SaveGame.data[\"multiplierCost\"] and not inSubScene:
+		SaveGame.prestigeWipe()
+		mutliplierText.text = \"Multiplier: %sx\" % str(SaveGame.data[\"multiplier\"])
+		presCostText.text = \"Prestige cost: %s\" % format_number(SaveGame.data[\"multiplierCost\"])
 
 func _on_leaderboard_pressed() -> void:
-	var leaderboardNode: Node2D = scenes[\"Leaderboard\"].instantiate()
-	add_child(leaderboardNode)
+	if not inSubScene:
+		leaderboardNode = scenes[\"Leaderboard\"].instantiate()
+		add_child(leaderboardNode)
+		leaderboardNode.removeMe.connect(removeScene)
+		inSubScene = true
+	
+func _on_shop_pressed() -> void:
+	if not inSubScene:
+		shopNode = scenes[\"Shop\"].instantiate()
+		add_child(shopNode)
+		shopNode.removeMe.connect(removeScene)
+		inSubScene = true
+
+func _on_ads_pressed() -> void:
+	if not inSubScene:
+		adsNode = scenes[\"Ads\"].instantiate()
+		add_child(adsNode)
+		adsNode.removeMe.connect(removeScene)
+		inSubScene = true
 "
 
 [node name="MainGame" type="Node2D"]
@@ -165,7 +249,9 @@ text = "[center]Enter ads shop[/center]"
 deselect_on_focus_loss_enabled = false
 drag_and_drop_selection_enabled = false
 
-[connection signal="pressed" from="clicker/Clickables/Earn" to="." method="_on_touch_screen_button_pressed"]
+[connection signal="pressed" from="clicker/Clickables/Earn" to="." method="_on_earn_pressed"]
 [connection signal="pressed" from="clicker/Clickables/Prestige" to="." method="_on_prestige_pressed"]
+[connection signal="pressed" from="clicker/Clickables/Shop" to="." method="_on_shop_pressed"]
 [connection signal="pressed" from="clicker/Clickables/Settings" to="." method="_on_settings_pressed"]
 [connection signal="pressed" from="clicker/Clickables/Leaderboard" to="." method="_on_leaderboard_pressed"]
+[connection signal="pressed" from="clicker/Clickables/Ads" to="." method="_on_ads_pressed"]

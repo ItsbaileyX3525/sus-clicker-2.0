@@ -1,0 +1,4 @@
+#Sun Jun 23 19:07:25 BST 2024
+base.0=G\:\\Godot\\Sus  clicker\\android\\build\\build\\intermediates\\dex\\release\\mergeDexRelease\\classes.dex
+renamed.0=classes.dex
+path.0=classes.dex

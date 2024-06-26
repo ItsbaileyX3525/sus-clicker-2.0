@@ -14,6 +14,7 @@ config/name="Sus clicker"
 run/main_scene="res://scenes/MainGame.tscn"
 config/features=PackedStringArray("4.2", "GL Compatibility")
 boot_splash/image="res://Assets/the lads.png"
+config/icon="res://Assets/clicker/clicker.png"
 
 [autoload]
 
@@ -21,6 +22,7 @@ MusicPlayer="*res://scripts/MusicPlayer.gd"
 SaveGame="*res://scripts/SaveGame.gd"
 Leaderboards="*res://addons/quiver_leaderboards/leaderboards.tscn"
 PlayerAccounts="*res://addons/quiver_player_accounts/player_accounts.tscn"
+Generators="*res://scripts/Generators.gd"
 
 [display]
 

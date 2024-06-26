@@ -1,6 +1,20 @@
 extends Node
 
 var timer: float = 0
+var allowSaves: bool = true
+
+var defaultSave := {
+	"clicks": 0,
+	"multiplier": 1,
+	"multiplierCost" : 25000,
+	"callumGensBought" : 0,
+	"nathanielGensBought" : 0,
+	"taylorGensBought" : 0,
+	"wilsonGensBought" : 0,
+	"redGensBought" : 0,
+	"greenGensBought" : 0,
+	"jermaGensBought" : 0
+}
 
 func saveGame(save: Dictionary) -> void:
 	var gameFile = FileAccess.open("user://gameData.json", FileAccess.WRITE)
@@ -9,26 +23,57 @@ func saveGame(save: Dictionary) -> void:
 	gameFile.store_line(jsonString)
 
 func loadGame() -> Dictionary:
-	var data
+	var loadedData
 	if not FileAccess.file_exists("user://gameData.json"): 
-		var save_dict = {
-			"clicks": 0,
-			"multiplier": 1,
-			"multiplierCost" : 25000
-		}
-		return save_dict
+		return defaultSave
 	else:
-		var saveGame = FileAccess.get_file_as_string("user://gameData.json")
+		var gameSave = FileAccess.get_file_as_string("user://gameData.json")
 
-		data = JSON.parse_string(saveGame)
-
+		loadedData = JSON.parse_string(gameSave)
 	
-	return data
+	return loadedData
 	
 var data := loadGame()
 
+func _ready() -> void:
+	pass
+	#justLikeFullyWipeEverythingHeldInData()
+
+func justLikeFullyWipeEverythingHeldInData() -> void:
+	allowSaves = false
+	DirAccess.remove_absolute("user://gameData.json")
+	allowSaves = true
+
+func prestigeWipe() -> void:
+	allowSaves = false
+	var hasUsername: bool = false
+	var username: String
+	var oldMultiplier: float = data["multiplier"]
+	var oldMultiplierPrice: float = data["multiplierCost"]
+	var musicLike: String 
+	var vol: String
+	if "username" in data:
+		hasUsername = true
+		username = data["username"]
+	if "volume" in data:
+		vol = str(data["volume"])
+	if "musicChosen" in data:
+		musicLike = str(data["musicChosen"])
+	
+	data = defaultSave.duplicate()
+
+
+	if hasUsername:
+		data["username"] = username
+	data["multiplier"] = oldMultiplier + .5
+	data["multiplierCost"] = floor(oldMultiplierPrice * 1.25)
+	data["musicChosen"] = musicLike
+	data["volume"] = vol
+	allowSaves = true	
+	
+	
 func _process(delta: float) -> void:
 	timer+=delta
-	if timer >= 1:
+	if timer >= 1 and allowSaves:
 		timer=0
 		saveGame(data)

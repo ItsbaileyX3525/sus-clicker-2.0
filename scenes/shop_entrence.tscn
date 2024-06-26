@@ -1,0 +1,88 @@
+[gd_scene load_steps=5 format=3 uid="uid://brn7g17hub5mp"]
+
+[ext_resource type="Texture2D" uid="uid://casjf16hoaas6" path="res://Assets/background/Morshu_cutscene.png" id="1_xh6qa"]
+[ext_resource type="Texture2D" uid="uid://c5k53h8hcnvkm" path="res://Assets/background/ShopBG.jpg" id="2_4nh6x"]
+
+[sub_resource type="GDScript" id="GDScript_n0nsm"]
+script/source = "extends Node2D
+
+signal removeMe(node: String)
+
+var inSubScene: bool = false
+
+@onready var shopScenes: Dictionary = {
+	\"Tesco\" : preload(\"res://scenes/tesco.tscn\"),
+}
+
+var tescoNode: Node2D
+
+func removeNode(type: String) -> void:
+	var scenesToRemove: Dictionary = {
+		\"Tesco\" : tescoNode
+	}
+
+	remove_child(scenesToRemove[type])
+	
+	await get_tree().create_timer(.1).timeout
+	inSubScene = false
+
+
+func _on_enter_tesco_pressed() -> void:
+	if not inSubScene:
+		tescoNode = shopScenes[\"Tesco\"].instantiate()
+		add_child(tescoNode)
+		tescoNode.removeMe.connect(removeNode)
+		inSubScene = true
+		
+func _on_touch_screen_button_pressed() -> void:
+	if not inSubScene:
+		removeMe.emit(\"Shop\")
+"
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0ph1t"]
+
+[node name="ShopEntrence" type="Node2D"]
+script = SubResource("GDScript_n0nsm")
+
+[node name="Background" type="Sprite2D" parent="."]
+scale = Vector2(5, 4.5)
+texture = ExtResource("1_xh6qa")
+centered = false
+
+[node name="Clickables" type="Node2D" parent="."]
+
+[node name="EnterTesco" type="TouchScreenButton" parent="Clickables"]
+position = Vector2(95, 121)
+scale = Vector2(0.639583, 0.45)
+texture_normal = ExtResource("2_4nh6x")
+
+[node name="Texts" type="Node2D" parent="."]
+
+[node name="Response" type="RichTextLabel" parent="Texts"]
+offset_left = 95.0
+offset_top = 263.0
+offset_right = 304.0
+offset_bottom = 385.0
+scale = Vector2(1.50431, 1.50431)
+theme_override_font_sizes/normal_font_size = 39
+text = "Enter tesco"
+
+[node name="Return" type="Node2D" parent="."]
+position = Vector2(1474, 900)
+scale = Vector2(2.76, 2.76)
+
+[node name="RichTextLabel" type="RichTextLabel" parent="Return"]
+offset_left = 25.3623
+offset_top = -316.667
+offset_right = 178.362
+offset_bottom = -267.667
+theme_override_font_sizes/normal_font_size = 39
+text = "Return"
+
+[node name="TouchScreenButton" type="TouchScreenButton" parent="Return"]
+position = Vector2(84.3623, -298.667)
+scale = Vector2(5.68, 1.49002)
+shape = SubResource("RectangleShape2D_0ph1t")
+
+[connection signal="pressed" from="Clickables/EnterTesco" to="." method="_on_enter_tesco_pressed"]
+[connection signal="pressed" from="Return/TouchScreenButton" to="." method="_on_touch_screen_button_pressed"]

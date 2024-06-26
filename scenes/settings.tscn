@@ -8,15 +8,21 @@ script/source = "extends Node2D
 @onready var optionButton: OptionButton = $Music/OptionButton
 @onready var masterVol: RichTextLabel = $Music/MasterVol
 @onready var volumeSlider: HSlider = $Music/HSlider
+@onready var codeEnter: TextEdit = $Codes/CodeEnter
 
+const URL = \"https://raw.githubusercontent.com/ItsbaileyX3525/sus-clicker-2.0/main/codes.txt\"
+var http_request : HTTPRequest
 var realVolume: int
 
 var data: Dictionary = SaveGame.data
+
+signal removeMe(node: String)
 
 func add_item():
 	optionButton.add_item(\"Normal\")
 	optionButton.add_item(\"Take on me\")
 	optionButton.add_item(\"Wilson homeland\")
+	optionButton.add_item(\"MARTIN LUTHER KING!\")
 	
 func remap_value(value: float, from_min: float, from_max: float, to_min: float, to_max: float) -> float:
 	return (value - from_min) / (from_max - from_min) * (to_max - to_min) + to_min
@@ -36,17 +42,40 @@ func _on_option_button_item_selected(index: int) -> void:
 	SaveGame.data[\"musicChosen\"] = index
 
 func _on_touch_screen_button_pressed() -> void:
-	queue_free()
+	removeMe.emit(\"Settings\")
 
 func _on_h_slider_value_changed(value: float) -> void:
 	masterVol.text = \"Master volume: %s\" % str(remap_value(value, -80, 20, 0, 100))
 	if value > 0:
 		value /= 4
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index(\"Master\"), value)
-	realVolume = value
+	realVolume = int(value)
 
-func _on_h_slider_drag_ended(value_changed: bool) -> void:
+func _on_h_slider_drag_ended(_value_changed: bool) -> void:
 	SaveGame.data[\"volume\"] = realVolume
+
+func _on_confirm_code_pressed() -> void:
+	if codeEnter.text == \"Motherlode\":
+		SaveGame.data[\"clicks\"] += 250000
+
+const LIMIT: int = 15
+var current_text := ''
+
+func _on_code_enter_text_changed() -> void:
+	var new_text : String = codeEnter.text
+
+	
+	if new_text.length() > LIMIT:
+		codeEnter.text = current_text
+		codeEnter.set_caret_column(codeEnter.text.length())
+	
+	var withoutSpaces = codeEnter.text.replace(\"\\n\", \"\").replace(\"\\r\", \"\")
+	if withoutSpaces == codeEnter.text:
+		current_text = codeEnter.text
+	else:
+		codeEnter.text = withoutSpaces
+		current_text = codeEnter.text
+		codeEnter.set_caret_column(codeEnter.text.length())	
 "
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hrftr"]
@@ -96,6 +125,30 @@ max_value = 20.0
 value = 20.0
 rounded = true
 
+[node name="Codes" type="Node2D" parent="."]
+
+[node name="CodeEnter" type="TextEdit" parent="Codes"]
+offset_left = 1334.0
+offset_top = 314.0
+offset_right = 1778.0
+offset_bottom = 386.0
+theme_override_font_sizes/font_size = 50
+placeholder_text = "Enter code..."
+
+[node name="ConfirmCodeText" type="RichTextLabel" parent="Codes"]
+offset_left = 1416.0
+offset_top = 417.0
+offset_right = 1569.0
+offset_bottom = 466.0
+scale = Vector2(1.36, 1.36)
+theme_override_font_sizes/normal_font_size = 39
+text = "Confirm"
+
+[node name="ConfirmCode" type="TouchScreenButton" parent="Codes"]
+position = Vector2(1510, 439)
+scale = Vector2(9.08, 2.05665)
+shape = SubResource("RectangleShape2D_hrftr")
+
 [node name="Return" type="Node2D" parent="."]
 scale = Vector2(2.76, 2.76)
 
@@ -115,4 +168,6 @@ shape = SubResource("RectangleShape2D_hrftr")
 [connection signal="item_selected" from="Music/OptionButton" to="." method="_on_option_button_item_selected"]
 [connection signal="drag_ended" from="Music/HSlider" to="." method="_on_h_slider_drag_ended"]
 [connection signal="value_changed" from="Music/HSlider" to="." method="_on_h_slider_value_changed"]
+[connection signal="text_changed" from="Codes/CodeEnter" to="." method="_on_code_enter_text_changed"]
+[connection signal="pressed" from="Codes/ConfirmCode" to="." method="_on_confirm_code_pressed"]
 [connection signal="pressed" from="Return/TouchScreenButton" to="." method="_on_touch_screen_button_pressed"]

@@ -5,7 +5,9 @@ extends Node
 @onready var musics = [
 	preload("res://Assets/audio/music/bg_music.ogg"),
 	preload("res://Assets/audio/music/bg_music2.ogg"),
-	preload("res://Assets/audio/music/bg_music3.ogg")
+	preload("res://Assets/audio/music/bg_music3.ogg"),
+	preload("res://Assets/audio/music/bg_music4.ogg"),
+	preload("res://Assets/audio/music/ohYeahMrKrabs.ogg")
 ]
 
 # Called when the node enters the scene tree for the first time.
